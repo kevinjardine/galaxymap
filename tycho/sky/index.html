@@ -1,0 +1,953 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width">
+<title>Tycho Sky</title>
+<script src="js/openseadragon.min.js"></script>
+<script src="js/openseadragon-svg-overlay.js"></script>
+<script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.0/jquery-ui.js"></script>
+<script src="//d3js.org/d3.v4.min.js" charset="utf-8"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.0/jquery-ui.css"/>
+<style>
+.star-info {
+	font-size: 0.8em;
+}
+.star-info-item {
+	width: 480px;
+	display: block;
+	padding-bottom: 25px;
+}
+.star-info-label {
+	float: left;
+	width: 120px;
+	font-weight: bold;
+}
+.star-info-value {
+	float: right;
+	width: 360px;
+}
+.star-link-label {
+	float: left;
+	width: 200px;
+	font-weight: bold;
+}
+.star-link-value {
+	float: right;
+	width: 280px;
+}
+.star-info-links {
+	font-size: 1.2em;
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+
+#tgas-controls {
+	color: white;
+	font-size: 1.0em;
+	width: 150px;
+	background-color: rgba(0,0,0,0.5);
+}
+
+#tgas-controls-text {
+	padding: 5px;
+	float: left;
+}
+
+#tgas-search {
+	touch-action: none;
+	color: white;
+	font-size: 0.95em;
+	width: 280px;
+	height: 75px;
+	padding: 10px;
+	background-color: rgba(0,0,0,0.5);
+}
+
+#tgas-search-button {
+	background-image: url('search_icon_small.png');
+	background-size: 25px 25px;
+    background-repeat: no-repeat;
+	width: 25px;
+	height: 25px;
+	text-align: middle;
+	margin-top: 7px;
+	margin-left: 10px;
+	cursor: pointer;
+}
+#tgas-search-button-wrapper {
+	display: inline-block;
+	width: 25px;
+	height: 25px;
+}
+#tgas-search-input {
+	display: inline-block;
+	height: 25px;
+	width: 240px;
+}
+#tgas-search-response {
+	margin-top: 5px;
+	height: 20px;
+}
+
+#tgas-search-help-link, #tgas-search-simbad-link, #tgas-search-aladin-link, #tgas-search-bookmark-link {
+	color: white;
+	font-family: Helvetica, Arial, sans-serif;
+}
+
+#reticle-container {
+	position: relative;
+	width: 50px;
+	top: 50%;
+	left: 50%;
+	pointer-events: none;
+	z-index: 30;
+}
+
+#reticle {
+	position: absolute;
+	top: -12px;
+	left: -12px;
+	width: 24px;
+	height: 24px;
+	background: url("reticle.png") no-repeat center center;
+	pointer-events: none;
+}
+
+#logo {
+	width: 160px;
+	height: 40px;
+	background: url("logo_small.png") no-repeat center center;
+	pointer-events: none;
+}
+
+</style>
+</head>
+<body style="background-color: black;">
+<div id="openseadragon1" style="width:100%; height: 100%"><div id="reticle-container"><div id="reticle"></div></div></div>
+<div id="tgas-controls">
+	<div id="tgas-controls-text">(<span id="tgas-longitude">0</span>&deg;, <span id="tgas-latitude">0</span>&deg;)</div>
+</div>
+<div id="tgas-search">
+	<input id="tgas-search-input" type="text" /><div id="tgas-search-button-wrapper"><div id="tgas-search-button"></div></div>
+	<div id="tgas-search-response"></div>
+	<div id="tgas-search-simbad"><a href="javascript:void(0);" id="tgas-search-help-link">Help</a> | <a href="javascript:void(0);" id="tgas-search-simbad-link">Radius search</a> | <a href="javascript:void(0);" target="aladin" id="tgas-search-aladin-link">Aladin</a> | <a href="javascript:void(0);" id="tgas-search-bookmark-link">Link</a></div>
+</div>
+<div id="logo"></div>
+<div id="help-text" style="display: none;" title="Help">
+<p>Tycho Sky is an overlay of the <a target="_blank" href="http://cdsarc.u-strasbg.fr/viz-bin/Cat?I/259">Tycho-2</a> star catalog and the <a href="http://cdsarc.u-strasbg.fr/viz-bin/Cat?B/ocl">DAML02</a> cluster catalog on a background image taken from several infrared surveys (Glimpse/MIPSGAL, GLIMPSE360 and WISE). 
+</p>
+<p>Tycho Sky is one component of the Tycho Explorer, which also includes Tycho Galaxy, a face-on map of the solar neighbourhood as seen from above the galactic plane that is derived from the Tycho-Gaia Astrometric Solution.</p>
+<p>
+The background image has a number of artifacts that I will describe at some point on my blog.
+</p>
+<p>The star colours are derived from the B - V colour index computed from data in the Tycho-2 catalog and the size is derived from the star's relative magnitude. (You will not see the stars until you zoom into the image.)
+</p>
+<p>
+You can pan and zoom to any object with coordinates in the SIMBAD astronomy database by entering an identifier in the search box at the upper right. Beneath the search box are four options:
+<ul>
+<li><b>Help:</b> brings up this box</li>
+<li><b>Radius search:</b> lists all SIMBAD objects within 5 arcminutes of the reticle (green cross)</li>
+<li><b>Aladin:</b> brings up the Aladin viewer in a separate window, which shows the current view with a broader range of objects and the ability to select alternative backgrounds such as the DSS visual spectrum view</li>
+<li><b>Link:</b> a link that allows you to bookmark the current view</li>
+</ul>
+</p>
+<p>At the upper left are controls to zoom in and out, return to the home view, and expand to full screen mode.</p>
+<p>
+You can also move left, right, up and down by dragging your mouse, using the arrow keys, or using the WASD keys. You can zoom in and out using the + and - keys or your mouse wheel. </p>
+<p>
+Clicking or tapping will zoom into the current position. Double clicking/tapping will move the reticle to the current location of the tap or mouse pointer.
+</p>
+<p>
+At high zoom levels, hovering your mouse pointer over a star or cluster boundary will show the name of the object and a distance estimate if available. Tapping or clicking will bring up a popup table with more information (and a link to Tycho Galaxy for stars with distances).
+</p>
+<p>
+The galactic longitude and latitude of the current mouse pointer location appear at the lower left.
+</p>
+</div>
+<script type="text/javascript">
+	var scaleWidth = 1024;
+	var maxGridX = 64;
+	var maxGridY = 32;
+	var overlay;
+	var oldZoom = 0.0;
+	var oldZoomRatio = 4;
+	var currentZoom = 0.0;
+	var oldDoZoomState = false;
+	var doZoomState = false;
+	var processingZoom = false;
+	var oldSector = '';
+	var starControl = {}
+	var regionControl = {}
+	
+	var imageWidth = 1048576;
+	var imageGridSize = 64;
+	var imageChunkSize = imageWidth/imageGridSize;
+	var dataChunkSize = imageChunkSize/16;
+	var scale = imageWidth/(2*scaleWidth);
+	
+	var dataUrlPrefix = 'http://gruze.org/galaxymap/tycho/sky';
+	
+	var tychoSkyUrl = 'http://galaxymap.org/tycho/sky/index.html';
+	var tychoGalaxyUrl = 'http://galaxymap.org/tycho/galaxy/index.html';
+	var aladinUrl = 'http://galaxymap.org/aladin/index.html';
+	
+	var simbadUrl = 'http://simbad.u-strasbg.fr/simbad/sim-script?script=format%20object%20"|%25COO(d;A D;GAL;J2000)|%25IDLIST(HIP,TYC)"%0a';
+	var wiseUrl ='http://irsa.ipac.caltech.edu/applications/wise/#id=Hydra_wise_wise_1&RequestClass=ServerRequest&DoSearch=true&intersect=CENTER'
+	wiseUrl += '&subsize=0.5&mcenter=mcen&schema=allwise-multiband&dpLevel=3a&band=1,2,3,4&UserTargetWorldPt=';
+	var wiseUrl2 =';GALACTIC&SimpleTargetPanel.field.resolvedBy=nedthensimbad&preliminary_data=no&projectId=wise&searchName=wise_1&shortDesc=Position';
+	wiseUrl2 += '&isBookmarkAble=true&isDrillDownRoot=true&isSearchResult=true';
+	
+	var urlParams;
+	(window.onpopstate = function () {
+		var match,
+			pl     = /\+/g,  // Regex for replacing addition symbol with a space
+			search = /([^&=]+)=?([^&]*)/g,
+			decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); },
+			query  = window.location.search.substring(1);
+
+		urlParams = {};
+		while (match = search.exec(query))
+		   urlParams[decode(match[1])] = decode(match[2]);
+	})();
+	//console.log(urlParams);
+	
+	var updateCoords = function(p) {
+		var vp = viewer.viewport.pointFromPixel(p);
+		//console.log(vp);
+		var l = toLng(vp);
+		var b = toLat(vp);
+
+		$('#tgas-latitude').html(b.toFixed(2));	
+		$('#tgas-longitude').html(l.toFixed(2));
+	};
+	
+	handleSearch = function() {
+		viewer.autoHideControls = true;
+		$('#tgas-search-input').blur();
+		var regex = /^[ 0-9,.+-]+$/;
+		var v = $('#tgas-search-input').val().trim();
+		console.log(v);
+		$('#tgas-search-input').val('');
+		$('#tgas-search-response').html('');
+		if (regex.test(v)) {
+			var coords = v.replace(',',' ').replace(/ +/,' ').split(' ');
+			viewer.viewport.goHome(true);
+			slew(parseFloat(coords[0]),parseFloat(coords[1]));
+		} else {
+			$.get(simbadUrl+encodeURIComponent(v), function(response) {
+				console.log(response);
+				i1 = response.indexOf('::data::');
+				if (i1 == -1) {
+					$('#tgas-search-response').html('Cannot find object: '+v);
+				} else {
+					i2 = response.indexOf('|',i1);
+					var bits = response.slice(i2+1).split('|');
+					var coords = bits[0].split(' ');
+					console.log(coords);
+					viewer.viewport.goHome(true);
+					slew(parseFloat(coords[0]),parseFloat(coords[1]));
+				}
+			});
+		}
+	}
+	
+	radians = function(d) {
+		return (Math.PI/180)*d;
+	}
+	
+	degrees = function(r) {
+		return (180/Math.PI)*r;
+	}
+	toEquatorial = function(ld,bd) {
+		l = radians(ld)
+		b = radians(bd)
+
+		// North galactic pole (J2000) -- according to Wikipedia
+		pole_ra = radians(192.859508)
+		pole_dec = radians(27.128336)
+		posangle = radians(122.932-90.0)
+		
+		ra = Math.atan2( (Math.cos(b)*Math.cos(l-posangle)), (Math.sin(b)*Math.cos(pole_dec) - Math.cos(b)*Math.sin(pole_dec)*Math.sin(l-posangle)) ) + pole_ra
+		dec = Math.asin( Math.cos(b)*Math.cos(pole_dec)*Math.sin(l-posangle) + Math.sin(b)*Math.sin(pole_dec) )
+		return [degrees(ra),degrees(dec)]
+	
+	}
+	
+	$('#tgas-search-help-link').on('click touchstart',function() {
+		viewer.autoHideControls = false; 
+		$( '#help-text' ).dialog({width:500, height: 500, close:function() {viewer.autoHideControls = true;}});
+	});
+	
+	$('#tgas-search-input').on('touchstart',function() {$(this).focus(); viewer.autoHideControls = false; });
+	
+	$('#tgas-search-bookmark-link').on('touchstart',function() {document.location.href = $(this).attr('href');});
+	$('#tgas-search-aladin-link').on('touchstart',function() {document.location.href = $(this).attr('href');});
+	$('#tgas-search-simbad-link').on('touchstart',function() {document.location.href = $(this).attr('href');});
+	
+	$('#tgas-search-button').on('click', handleSearch);
+	$('#tgas-search-input').on('keyup', function(e) {
+		var code = (e.keyCode ? e.keyCode : e.which);
+		if (code == 10 || code == 13) {
+			e.preventDefault();
+			handleSearch();
+		}
+	});
+	
+	var viewer = OpenSeadragon({
+        id: "openseadragon1",
+        prefixUrl: "images/",
+		wrapHorizontal: true,
+		maxZoomPixelRatio: 1.2,
+		tileSources:   {
+			width: scaleWidth,
+			tileSource: dataUrlPrefix+'/all.dzi'
+		}
+	});
+	
+	viewer.addHandler('open', function(o) {
+        var tracker = new OpenSeadragon.MouseTracker({
+            element: viewer.container,
+            moveHandler: function(event) {
+				simbad_url();
+				updateCoords(event.position);
+				updateZoom(event.position); 
+			}
+		});
+		tracker.setTracking(true);
+
+		viewer.addControl(document.getElementById('reticle-container'),{autoFade: true, anchor: OpenSeadragon.ControlAnchor.NONE});
+	});
+	viewer.addHandler('animation', function(event) {
+		p = event.eventSource.viewport.getCenter(true);
+		updateZoom(p);
+		updateCoords(p);
+		simbad_url();
+	});
+	viewer.addHandler('canvas-double-click', function(o) {viewer.viewport.panTo(viewer.viewport.pointFromPixel(o.position));});
+
+	var toLng = function(p) {
+		var l = 180 - 360*(p.x/scaleWidth);
+		if (l < 0) {
+			l += 360;
+		}
+		return l;
+	}
+	
+	var toLat = function(p) {
+		return 360*(0.25-(p.y/scaleWidth));
+	}
+	
+	var simbad_url = function() {
+        var p = viewer.viewport.getCenter();
+		var zoom = viewer.viewport.getZoom(true);
+		var fov = 360/(zoom*scaleWidth);
+        var lc = toLng(p);
+        var b = toLat(p);
+                    
+        if (b > 0) {
+            b_url = '%2B'+b;
+        } else {
+            b_url = b;
+        }
+        var simbad = 'http://simbad.u-strasbg.fr/simbad/sim-coo?CooFrame=Gal&Radius.unit=arcmin&CooEpoch=2000&CooEqui=2000&Radius=5';
+        simbad += '&simbadOptions=H4sIAAAAAAAAADVQyW6DMBD9lpF6Q0jxEqmdW1spabodklx6BNuIVIYhhqC0X9/noCIB43nbeKTz/EnSFBSngmpXkHRXVis86Aq'
+		simbad += '/HD/eKc2+pFgDn/Cf8fYFhbNh9bBeUaxKHDTrrAlntRRphlftOYVmvHQUkdB7PlC8ZrZdSNIhNHYlCgSHgpBIk2eD7FNJDSZpSAYY/Wi+c5eUQj99hSqRVAUiZqh';
+		simbad += 'PGVWs7jGKoCHOYMAOk4qzqAb4RCZpAU2ChrNZ5Zha3oaJZIRBy48xUv3NFFtQfJV5BjynC3LdkI8KRjdXnT8KdtiI85pHTWFQ/Hq7UmN482ZJ+oypBdP/mOXd8';
+		simbad +='/5Acs2gZZ9Bw0+3NTaKt1VE3ywi+y/SMFyTG5HvRmTHk/Bmtz8cKWJ0N+K6af7Ne3T8BwU/DjXPAQAA';
+        simbad += '&Coord='+lc+' '+b_url;
+		
+		var aladin = aladinUrl+'?l='+lc+'&b='+b_url+'&fov='+fov;
+		var bookmark = tychoSkyUrl+'?l='+lc+'&b='+b+'&zoom='+zoom;
+        document.getElementById("tgas-search-simbad-link").href = simbad;
+		document.getElementById("tgas-search-aladin-link").href = aladin;
+		document.getElementById("tgas-search-bookmark-link").href = bookmark;		
+    }
+		
+	// temporarily set OpenSeadragon animation params
+	// to a very slow animate, then restore.
+	function withSlowOSDAnimation(viewport, f) {
+	
+		var panSpeed = 30;
+		var zoomSpeed = 15;
+		
+		console.log(viewport);
+
+		// save old ones
+		var oldValues = {};
+		oldValues.centerSpringXAnimationTime = viewport.centerSpringX.animationTime;
+		oldValues.centerSpringYAnimationTime = viewport.centerSpringY.animationTime;
+		oldValues.zoomSpringAnimationTime = viewport.zoomSpring.animationTime;
+		
+		oldValues.centerSpringXSpringStiffness = viewport.centerSpringX.springStiffness;
+		oldValues.centerSpringYSpringStiffness = viewport.centerSpringY.springStiffness;
+		oldValues.zoomSpringSpringStiffness = viewport.zoomSpring.springStiffness;
+		
+		oldValues.zoomSpringExponential = viewport.zoomSpring.exponential;
+
+		// set our new ones
+		viewport.centerSpringX.animationTime = panSpeed;
+		  viewport.centerSpringY.animationTime = panSpeed;
+		  viewport.zoomSpring.animationTime = zoomSpeed;
+		  
+		viewport.centerSpringX.springStiffness =
+		  viewport.centerSpringY.springStiffness =
+		  viewport.zoomSpring.springStiffness =
+		  0;
+		  
+		viewport.zoomSpring.exponential = true;
+
+		// callback
+		f();
+
+		// restore values
+		viewport.centerSpringX.animationTime = oldValues.centerSpringXAnimationTime;
+		viewport.centerSpringY.animationTime = oldValues.centerSpringYAnimationTime;
+		viewport.zoomSpring.animationTime = oldValues.zoomSpringAnimationTime;
+		
+		viewport.centerSpringX.springStiffness = oldValues.centerSpringXSpringStiffness;
+		viewport.centerSpringY.springStiffness = oldValues.centerSpringYSpringStiffness;
+		viewport.zoomSpring.springStiffness = oldValues.zoomSpringSpringStiffness;
+		
+		viewport.zoomSpring.exponential = oldValues.zoomSpringExponential;
+	}
+	
+	var slew = function(glon,glat,zoom) {
+		var x, y, bounds;
+		y = scaleWidth*(0.5-(glat+90)/360);
+		if (glon < 180) {
+			x = (scaleWidth/360)*(180-glon);
+		} else {
+			x = (scaleWidth/360)*(360-glon+180);
+		}
+		console.log(x,y);
+		console.log(zoom);
+		if (zoom != undefined && !isNaN(zoom)) {
+			viewer.viewport.panTo(new OpenSeadragon.Point(x,y),true).zoomTo(zoom,null,true);
+		} else {
+			setTimeout( function() {
+				console.log('zoom is undefined');
+				bounds = new OpenSeadragon.Rect(x-(scaleWidth*0.0001),y-(scaleWidth*0.0001),0.0002*scaleWidth,0.0002*scaleWidth,0);
+				withSlowOSDAnimation(viewer.viewport, function() {
+					viewer.viewport.fitBoundsWithConstraints(bounds,false);
+				});	
+			}, 500);		
+		}
+	}
+	
+	viewer.addHandler('open', function() {
+		if (('l' in urlParams) && ('b' in urlParams)) {
+			slew(parseFloat(urlParams['l']),parseFloat(urlParams['b']),parseFloat(urlParams['zoom']));
+		} else if ('ident' in urlParams){
+			$.get(simbadUrl+encodeURIComponent(urlParams['ident']), function(response) {
+				i1 = response.indexOf('::data::');
+				if (i1 == -1) {
+					$('#tgas-search-response').html('Cannot find object: '+v);
+				} else {
+					i2 = response.indexOf('|',i1);
+					var bits = response.slice(i2+1).split('|');
+					var coords = bits[0].split(' ');
+					console.log(coords);
+					//viewer.viewport.goHome(true);
+					slew(parseFloat(coords[0]),parseFloat(coords[1]));
+				}
+			});
+		}
+		overlay = viewer.svgOverlay();
+		d3.select(overlay.node().parentNode).attr('pointer-events','none');
+		var searchWidget = viewer.addControl($('#tgas-search')[0],{anchor: OpenSeadragon.ControlAnchor.TOP_RIGHT});
+		viewer.addControl($('#tgas-controls')[0],{anchor: OpenSeadragon.ControlAnchor.BOTTOM_LEFT});
+		viewer.addControl($('#logo')[0],{autoFade: false, anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT});
+	});
+	
+	var makeStarDocBox = function(o) {
+		var id = o.attr('id');
+		var name = o.attr('name');
+		nameBits = name.split(' ')
+		if (nameBits[0] == 'HIP') {
+			simbadName = 'HIP '+nameBits[1].match(/\d/g).join('');
+		} else {
+			simbadName = name;
+		}
+		html = '<div class="star-info">'
+		if (o.attr('plx') != '') {			
+			html += '<div class="star-info-item"><div class="star-info-label">'+'parallax:</div><div class="star-info-value">'+o.attr('plx')+' mas &plusmn; '+o.attr('err')+'</div></div>';
+			if ((o.attr('dist') != '') && (o.attr('dist') > 0)) {
+				var pcDist = parseFloat(o.attr('dist'));
+				var lyDist = 3.26156*pcDist;
+				html += '<div class="star-info-item"><div class="star-info-label">'+'distance:</div><div class="star-info-value">'+(Math.round(pcDist*100)/100)+' pc ('+(Math.round(lyDist*100)/100)+' ly)</div></div>';
+				html += '<div class="star-info-item"><div class="star-info-label">'+'(x,y,z):</div><div class="star-info-value">('+(Math.round(o.attr('yg')*100)/100)+' pc, '+(Math.round(-o.attr('xg')*100)/100)+' pc, '+(Math.round(o.attr('zg')*100)/100)+' pc)</div></div>';
+			}
+		}
+		html += '<div class="star-info-item"><div class="star-info-label">'+'colour index:</div><div class="star-info-value">'+(Math.round(o.attr('ci')*100)/100)+'</div></div>';
+		html += '<div class="star-info-item"><div class="star-info-label">'+'rel. magnitude:</div><div class="star-info-value">'+(Math.round(o.attr('mag')*100)/100)+'</div></div>';
+		html += '<div class="star-info-links">Links for '+name+'</div>';
+		if ((o.attr('dist') != '') && (o.attr('dist') > 0)) {
+			html += '<div class="star-info-item"><div class="star-link-label">Tycho Galaxy</div>';
+			html += '<div class="star-link-value"><a target="tychofaceon" href="'+tychoGalaxyUrl+'?xg='+o.attr('yg')+'&yg='+(-o.attr('xg'))+'">'+name+'</a></div></div>';
+		}
+		html += '<div class="star-info-item"><div class="star-link-label">SIMBAD</div>';
+		html += '<div class="star-link-value"><a target="_blank" href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident='+simbadName.replace(' ','+')+'">'+name+'</a></div></div>'
+		
+		
+		bits = simbadName.split(' ');
+		if (bits[0] == 'TYC') {
+			tycBits = bits[1].split('-');
+			tycLink = 'http://vizier.cfa.harvard.edu/viz-bin/VizieR?-source=I/259/tyc2&TYC1='+tycBits[0]+'&TYC2='+tycBits[1]+'&TYC3='+tycBits[2];
+			tycSupLink = 'http://vizier.cfa.harvard.edu/viz-bin/VizieR?-source=I/259/suppl_1&TYC1='+tycBits[0]+'&TYC2='+tycBits[1]+'&TYC3='+tycBits[2];
+			tgasLink = 'http://vizier.cfa.harvard.edu/viz-bin/VizieR?-source=I/337/tgas&TYC2='+bits[1];
+		} else {
+			tycLink = 'http://vizier.cfa.harvard.edu/viz-bin/VizieR?-source=I/259/tyc2&HIP='+bits[1];
+			tycSupLink = 'http://vizier.cfa.harvard.edu/viz-bin/VizieR?-source=I/259/suppl_1&HIP='+bits[1];
+			tgasLink = 'http://vizier.cfa.harvard.edu/viz-bin/VizieR?-source=I/337/tgas&HIP='+bits[1];
+		}
+		if (o.attr('plx') != '') {
+			html += '<div class="star-info-item"><div class="star-link-label">TGAS</div>';
+			html += '<div class="star-link-value"><a target="_blank" href="'+tgasLink+'">'+name+'</a></div></div>';
+		}
+		html += '<div class="star-info-item"><div class="star-link-label">Tycho-2</div>';
+		html += '<div class="star-link-value"><a target="_blank" href="'+tycLink+'">'+name+'</a></div></div>';
+		html += '<div class="star-info-item"><div class="star-link-label">Tycho-2 Supplement</div>';
+		html += '<div class="star-link-value"><a target="_blank" href="'+tycSupLink+'">'+name+'</a></div></div>';
+		
+		if (bits[0] == 'HIP') {
+			hypLink = 'http://vizier.cfa.harvard.edu/viz-bin/VizieR?-source=I/239/hip_main&HIP='+bits[1];
+			hyp2Link = 'http://vizier.cfa.harvard.edu/viz-bin/VizieR?-source=I/311/hip2&HIP='+bits[1];
+			html += '<div class="star-info-item"><div class="star-link-label">Hipparcos</div>';
+			html += '<div class="star-link-value"><a target="_blank" href="'+hypLink+'">'+name+'</a></div></div>';
+			html += '<div class="star-info-item"><div class="star-link-label">Hipparcos Reanalysis</div>';
+			html += '<div class="star-link-value"><a target="_blank" href="'+hyp2Link+'">'+name+'</a></div></div>';
+		}
+
+		html += '</div>';
+		
+		var div = $('<div>').attr('id',id+'_box').attr('title',name).html(html);
+		$('body').append(div);
+		$( "#"+id+'_box' ).dialog({width:500, close:function() {$(this).remove();}});
+	}
+	
+	var handleStarAction = function(event,o) {
+		console.log('in handleStarAction');
+		var id = o.attr('id');
+		console.log(id);
+		var name = d3.select('#'+id).attr('name');
+		console.log(name);
+		makeStarDocBox(o);
+		//alert(hip);
+		d3.event.preventDefault();
+		d3.event.stopPropagation();
+	}
+	
+	var makeClusterDocBox = function(o) {
+		var id = o.attr('id');
+		var name = o.attr('name');
+		nameBits = name.split(' ')
+		if (nameBits[0] == 'ASCC') {
+			simbadName = '[KPR2005] '+nameBits[1];
+		} else if (nameBits[0] == 'FSR') {
+			simbadName = '[FSR2007] '+nameBits[1];
+		} else {
+			simbadName = name;
+		}
+		html = '<div class="star-info">'
+		if (o.attr('dist') != '') {			
+			var pcDist = parseFloat(o.attr('dist'));
+			var lyDist = 3.26156*pcDist;
+			html += '<div class="star-info-item"><div class="star-info-label">'+'distance:</div><div class="star-info-value">'+(Math.round(pcDist*100)/100)+' pc ('+(Math.round(lyDist*100)/100)+' ly)</div></div>';
+		}
+		if (o.attr('num') != '') {	
+			html += '<div class="star-info-item"><div class="star-info-label">'+'number of stars:</div><div class="star-info-value">'+o.attr('num')+'</div></div>';
+		}
+		if (o.attr('age') != '') {	
+			html += '<div class="star-info-item"><div class="star-info-label">'+'age:</div><div class="star-info-value">10^'+o.attr('age')+' = '+(Math.pow(10,o.attr('age'))/1000000).toFixed(0)+' million years</div></div>';
+		}
+		html += '<div class="star-info-links">Links for '+name+'</div>';
+		html += '<div class="star-info-item"><div class="star-link-label">SIMBAD</div>';
+		html += '<div class="star-link-value"><a target="_blank" href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident='+simbadName.replace(' ','+')+'">'+name+'</a></div></div>'
+		oclLink = 'http://vizier.cfa.harvard.edu/viz-bin/VizieR?-source=B/ocl/clusters&Cluster='+name.replace(' ','+');
+
+		html += '<div class="star-info-item"><div class="star-link-label">DAML02</div>';
+		html += '<div class="star-link-value"><a target="_blank" href="'+oclLink+'">'+name+'</a></div></div>';
+		
+		html += '</div>';
+		
+		var div = $('<div>').attr('id',id+'_box').attr('title',name).html(html);
+		$('body').append(div);
+		$( "#"+id+'_box' ).dialog({width:500, close:function() {$(this).remove();}});
+	}
+	
+	var handleClusterAction = function(event,o) {
+		makeClusterDocBox(o);
+		d3.event.preventDefault();
+		d3.event.stopPropagation();
+	}
+	
+	var loadDomFromSector = function(sector) {
+		var circle, name;
+		var json = starControl[sector].data;
+		d3.select(overlay.node()).append('g').attr('id','g'+sector);
+		
+		for (var i = 0; i < json.length; i++) {
+			d = json[i];
+			var id = d['name'].replace(/ /g,'_');
+			if ((d['dist'] != '') && (d['dist'] > 0)) {
+				name2 = d['name']+ '   |   '+d['dist']+' pc';
+			} else {
+				name2 = d['name'];
+			}
+			var id_suffix = [ 'a','b','c'];
+			var suffix = 0;
+			// we put the overlays in three places to get
+			// around an irritating horizontal wrap bug
+			// (the image is wrapped but the image coordinates are not)
+			// the three places handle going off the "end" of the horizontal wrap
+			for (var inc = -1; inc <= 1; inc += 1) {
+				var px = scaleWidth*inc + (d['px']/scale);
+				circle = d3.select('#g'+sector).append('circle')
+				.attr('id',id+id_suffix[suffix])
+				.attr('cx', px)
+				.attr('cy', d['py']/scale)
+				.attr('r', d['r']/scale)
+				.attr('ci', d['ci'])
+				.attr('mag', d['mag'])
+				.attr('plx', d['plx'])
+				.attr('err', d['err'])
+				.attr('dist', d['dist'])
+				.attr('xg', d['xg'])
+				.attr('yg', d['yg'])
+				.attr('zg', d['zg'])
+				.attr('name', d['name'])
+				.attr('title',name2)
+				.attr('alt',name2)
+				.attr('fill', 'white')
+				.attr('opacity', 0.0)
+				.attr('pointer-events','fill')
+				.attr('cursor','pointer')
+				.on('click',function(event) {handleStarAction(event,$(this));})
+				.on('touchstart',function(event) {handleStarAction(event,$(this));})
+				.append("svg:title")
+				.text(name2);
+				
+				new OpenSeadragon.MouseTracker({
+					element: $('#'+id+id_suffix[suffix])[0],
+					clickHandler: function() {}
+				}).setTracking(true);
+			
+				suffix += 1;
+			}
+			
+			
+		}
+		starControl[sector].domLoaded = true;
+	}
+	
+	var loadSector = function(x,y) {
+		var sector = x+'_'+y;
+		if (!(sector in starControl)) {
+			starControl[sector] = {dataLoading:false, dataLoaded:false, domExists:false, data:[]};
+		}
+		if (!starControl[sector].dataLoaded) {
+			if (!starControl[sector].dataLoading) {
+				starControl[sector].dataLoading = true;
+				$.getJSON(dataUrlPrefix+'/json/star/'+x+'/'+y+'.json', function(json) {
+					console.log('loaded data for sector '+sector+', items: '+json.length);
+					starControl[sector].dataLoading = false;
+					starControl[sector].dataLoaded = true;
+					starControl[sector].data = json;
+					loadDomFromSector(sector);
+				});
+			}
+		} else if (!starControl[sector].domLoaded) {
+			loadDomFromSector(sector);
+		}
+	}
+	
+	var loadSectors = function(x,y) {
+		//console.log('loadSectors',x,y);
+		var sectorsToAdd = [];
+		var sectorsToRemove = [];
+		for (var i = -1; i <= 1; i++) {
+			for (var j = -1; j <= 1; j++) {
+				xn = x + j;
+				yn = y + i;
+				if (xn < 0) {
+					xn += 16*maxGridX;
+				} else if (xn >= 16*maxGridX) {
+					xn -= 16*maxGridX;
+				}
+				if (xn >= 0 && xn < 16*maxGridX && yn >= 0 && yn < 16*maxGridY) {
+					//console.log(sector);
+					sectorsToAdd.push(xn+'_'+yn)
+				}				
+			}
+		}
+		
+		for (var sector in starControl) {
+		  if (starControl.hasOwnProperty(sector) && starControl[sector].domLoaded) {
+			if (sectorsToAdd.indexOf(sector) === -1) {
+				sectorsToRemove.push(sector);
+			}
+		  }
+		}
+		for (var i = 0; i < sectorsToRemove.length; i++) {
+			removeSector(sectorsToRemove[i]);
+		}
+		for (var i = -1; i <= 1; i++) {
+			for (var j = -1; j <= 1; j++) {
+				xn = x + j;
+				yn = y + i;
+				if (xn < 0) {
+					xn += 16*maxGridX;
+				} else if (xn >= 16*maxGridX) {
+					xn -= 16*maxGridX;
+				}
+			
+				if (xn >= 0 && xn < 16*maxGridX && yn >= 0 && yn < 16*maxGridY) {
+					loadSector(xn,yn);
+				}
+			}
+		}
+	}
+	
+	var removeSector = function(sector) {
+		//console.log('Removing sector: '+sector);
+		// for now we keep the JSON data but remove the rendered DOM
+		d3.select('#g'+sector).remove();
+		starControl[sector].domLoaded = false;
+	}
+	
+	var removeSectors = function() {
+		for (var sector in starControl) {
+		  if (starControl.hasOwnProperty(sector)) {
+			removeSector(sector);
+		  }
+		}
+	}
+	
+	var purgeSector = function(sector) {
+		//console.log('Purging sector: '+sector);
+		d3.select('#g'+sector).remove();
+		starControl[sector].domLoaded = false;
+		starControl[sector].dataLoaded = false;
+		starControl[sector].dataLoading = false;
+		starControl[sector].data = [];
+	}
+	
+	var purgeSectors = function() {
+		for (var sector in starControl) {
+		  if (starControl.hasOwnProperty(sector)) {
+			removeSector(sector);
+		  }
+		}
+		starControl = {};
+	}
+	
+	// region variant
+	
+	var loadRegionDomFromSector = function(sector) {
+		var circle, name2;
+		var json = regionControl[sector].data;
+		d3.select(overlay.node()).insert('g', ":first-child").attr('id','r'+sector);
+		
+		for (var i = 0; i < json.length; i++) {
+			d = json[i];
+			var id = d['name'].replace(/ /g,'_').replace(/./g,'_');
+			var id_suffix = [ 'a','b','c'];
+			var suffix = 0;
+			if (d['dist'] != '') {
+				name2 = d['name'] + '   |   '+d['dist']+' pc';
+			} else {
+				name2 = d['name'];
+			}
+			// we put the overlays in three places to get
+			// around an irritating horizontal wrap bug
+			// (the image is wrapped but the image coordinates are not)
+			// the three places handle going off the "end" of the horizontal wrap
+			for (var inc = -1; inc <= 1; inc += 1) {
+				var px = scaleWidth*inc + (d['px']/scale);
+				circle = d3.select('#r'+sector).append('circle')
+				.attr('id',id+id_suffix[suffix])
+				.attr('cx', px)
+				.attr('cy', d['py']/scale)
+				.attr('r', d['r']/scale)
+				.attr('age', d['age'])
+				.attr('dist', d['dist'])
+				.attr('num', d['num'])
+				.attr('name', d['name'])
+				.attr('title',name2)
+				.attr('alt',name2)
+				.attr('fill', 'none')
+				.attr('stroke', 'green')
+				.attr('stroke-width', 2/scale)
+				.attr('stroke-opacity', 0.0)
+				.attr('pointer-events','stroke')
+				.attr('cursor','pointer')
+				.on('click',function(event) {handleClusterAction(event,$(this));})
+				.on('touchstart',function(event) {handleClusterAction(event,$(this));})
+				.append("svg:title")
+				.text(name2);
+				
+				/*new OpenSeadragon.MouseTracker({
+						element: $('#'+id+id_suffix[suffix])[0],
+						clickHandler: function() {}
+				}).setTracking(true);*/
+				
+				suffix += 1;
+			}
+		}
+		//$('circle').on('click',function() {console.log($(this).attr('id'))})
+		//$('circle').on('touchstart',function() {console.log($(this).attr('id'))})
+		regionControl[sector].domLoaded = true;
+	}
+	
+	var loadRegionSector = function(x,y) {
+		var sector = x+'_'+y;
+		if (!(sector in regionControl)) {
+			regionControl[sector] = {dataLoading:false, dataLoaded:false, domExists:false, data:[]};
+		}
+		if (!regionControl[sector].dataLoaded) {
+			if (!regionControl[sector].dataLoading) {
+				regionControl[sector].dataLoading = true;
+				$.getJSON(dataUrlPrefix+'/json/region/'+x+'/'+y+'.json', function(json) {
+					console.log('loaded region data for sector '+sector+', items: '+json.length);
+					regionControl[sector].dataLoading = false;
+					regionControl[sector].dataLoaded = true;
+					regionControl[sector].data = json;
+					loadRegionDomFromSector(sector);
+				});
+			}
+		} else if (!regionControl[sector].domLoaded) {
+			loadRegionDomFromSector(sector);
+		}
+	}
+	
+	var loadRegionSectors = function(x,y) {
+		var sectorsToAdd = [];
+		var sectorsToRemove = [];
+		for (var i = -1; i <= 1; i++) {
+			for (var j = -1; j <= 1; j++) {
+				xn = x + j;
+				yn = y + i;
+				if (xn < 0) {
+					xn += maxGridX;
+				} else if (xn >= maxGridX) {
+					xn -= maxGridX;
+				}
+				if (xn >= 0 && xn < maxGridX && yn >= 0 && yn < maxGridY) {
+					//console.log(sector);
+					sectorsToAdd.push(xn+'_'+yn)
+				}				
+			}
+		}
+		
+		for (var sector in regionControl) {
+		  if (regionControl.hasOwnProperty(sector) && regionControl[sector].domLoaded) {
+			if (sectorsToAdd.indexOf(sector) === -1) {
+				sectorsToRemove.push(sector);
+			}
+		  }
+		}
+		for (var i = 0; i < sectorsToRemove.length; i++) {
+			removeRegionSector(sectorsToRemove[i]);
+		}
+		for (var i = -1; i <= 1; i++) {
+			for (var j = -1; j <= 1; j++) {
+				xn = x + j;
+				yn = y + i;
+				if (xn < 0) {
+					xn += maxGridX;
+				} else if (xn >= maxGridX) {
+					xn -= maxGridX;
+				}
+				if (xn >= 0 && xn < maxGridX && yn >= 0 && yn < maxGridY) {
+					loadRegionSector(xn,yn);
+				}
+			}
+		}
+	}
+	
+	var removeRegionSector = function(sector) {
+		//console.log('Removing sector: '+sector);
+		// for now we keep the JSON data but remove the rendered DOM
+		d3.select('#r'+sector).remove();
+		regionControl[sector].domLoaded = false;
+	}
+	
+	var removeRegionSectors = function() {
+		for (var sector in regionControl) {
+		  if (regionControl.hasOwnProperty(sector)) {
+			removeRegionSector(sector);
+		  }
+		}
+	}
+	
+	var purgeRegionSector = function(sector) {
+		//console.log('Purging sector: '+sector);
+		d3.select('#r'+sector).remove();
+		regionControl[sector].domLoaded = false;
+		regionControl[sector].dataLoaded = false;
+		regionControl[sector].dataLoading = false;
+		regionControl[sector].data = [];
+	}
+	
+	var purgeRegionSectors = function() {
+		for (var sector in regionControl) {
+		  if (regionControl.hasOwnProperty(sector)) {
+			removeRegionSector(sector);
+		  }
+		}
+		regionControl = {};
+	}
+	
+	var updateZoom = function(webPoint) {
+		var item = viewer.world.getItemAt(0);
+		var zoom = Math.round(100*viewer.viewport.getZoom(true));
+		var currentZoom = item.viewportToImageZoom(zoom);
+        
+		//console.log('currentZoom: '+currentZoom);
+
+		if (currentZoom > 50) {
+			doZoomState = true;
+			if (doZoomState != oldDoZoomState) {
+				console.log('Would try to load overlay');
+				oldDoZoomState = true;
+			}
+		} else {
+			doZoomState = false;
+			if (doZoomState != oldDoZoomState) {
+				console.log('Would try to unload overlay');
+				oldDoZoomState = false;
+			}		
+		}
+		
+        if (doZoomState) {
+			var viewportPoint = viewer.viewport.pointFromPixel(webPoint);
+			var item = viewer.world.getItemAt(0);
+			var imagePoint = item.viewportToImageCoordinates(viewportPoint);
+			//console.log(imagePoint);
+			var cy = Math.floor(imagePoint.y/dataChunkSize);
+			var cx = Math.floor(imagePoint.x/dataChunkSize);
+			var ry = Math.floor(imagePoint.y/(16*dataChunkSize));
+			var rx = Math.floor(imagePoint.x/(16*dataChunkSize));
+			loadSectors(cx,cy);
+			loadRegionSectors(rx,ry);
+			currentSector = cx+'_'+cy;
+			if (oldSector != currentSector) {
+				//console.log("in moveHandler, imagePoint="+JSON.stringify(imagePoint));
+				//console.log("viewportPoint: "+viewportPoint.toString());
+				//console.log("in moveHandler, sector="+currentSector);
+				oldSector = currentSector;
+			}
+		} else {
+			if (currentZoom < 30) {
+				purgeSectors();
+				purgeRegionSectors();
+			} else {
+				removeSectors();
+				removeRegionSectors();
+			}
+		}
+    }
+	
+</script>
+</body>
+</html>

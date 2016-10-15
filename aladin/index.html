@@ -1,0 +1,72 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width">
+<link rel='stylesheet' href='http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css' />
+<script type='text/javascript' src='http://code.jquery.com/jquery-1.9.1.min.js' charset='utf-8'></script>
+<title>Aladin viewer</title>
+<style>
+.aladin-popup-container {width:400px;}
+</style>
+</head>
+<body>
+<div id='aladin-lite-div' style='width: 100%; height:100%;'></div>
+<script type='text/javascript' src='http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.js' charset='utf-8'></script>
+<script type='text/javascript'>
+var urlParams;
+(window.onpopstate = function () {
+	var match,
+		pl     = /\+/g,  // Regex for replacing addition symbol with a space
+		search = /([^&=]+)=?([^&]*)/g,
+		decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); },
+		query  = window.location.search.substring(1);
+
+	urlParams = {};
+	while (match = search.exec(query))
+	   urlParams[decode(match[1])] = decode(match[2]);
+})();
+var target = urlParams['l'] + ' ' +urlParams['b'];
+var aladin = A.aladin('#aladin-lite-div',
+  {
+	survey: 'P/allWISE/color', // set initial image survey
+	fov: urlParams['fov'], // initial field of view in degrees
+	target: target, // initial target
+	cooFrame: 'galactic', // set galactic frame
+	reticleColor: '#00ff00', // change reticle color
+	reticleSize: 32 // change reticle size
+});
+//var hips = A.catalogHiPS('http://axel.u-strasbg.fr/HiPSCatService/Simbad', {onClick: 'showPopup', name: 'Simbad'});
+var tychoSkyUrl = 'http://galaxymap.org/tycho/sky/index.html';
+var hips = A.catalogHiPS('http://axel.u-strasbg.fr/HiPSCatService/Simbad', {name: 'Simbad'});
+aladin.addCatalog(hips);
+var objClicked;
+aladin.on('objectClicked', function(object) {
+    var msg;
+	var view = object.catalog.view;
+	view.popup.setTitle(object.data.main_id);
+	var m = '<div class="aladin-marker-measurement">';
+	m += '<table>';
+	for (var key in object.data) {
+		if (key == 'main_id') {
+			m += '<tr><td>SIMBAD</td><td><a target="_blank" href="http://simbad.u-strasbg.fr/simbad/sim-id?ident=' + encodeURIComponent(object.data[key]) + '">'+object.data[key]+'</a></td></tr>';
+			m += '<tr><td>Tycho Sky</td><td><a target="tychosky" href="'+tychoSkyUrl+'?ident=' + encodeURIComponent(object.data[key]) + '">'+object.data[key]+'</a></td></tr>';
+		} else {
+			m += '<tr><td>' + key + '</td><td>' + object.data[key] + '</td></tr>';
+		}
+	}
+	m += '</table>';
+	m += '</div>';
+	view.popup.setText(m);
+	view.popup.setSource(object);
+	view.popup.show();
+    if (object) {
+        objClicked = object;
+      object.select();
+        msg = 'You clicked object ' + object.data.main_id + ' located at ' + object.ra + ', ' + object.dec;
+    }
+    else {
+        objClicked.deselect();
+        msg = 'You clicked in void';
+    }
+});
+</script>
+</body>
